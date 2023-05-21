@@ -1,11 +1,24 @@
 import React, { useRef } from "react";
-import { TextField } from "@mui/material";
+import { Snackbar, TextField } from "@mui/material";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { db } from "../config";
-import { addDoc, doc, setDoc } from "firebase/firestore";
-
+import {  doc, setDoc } from "firebase/firestore";
+import "./style2.css";
+import { useState } from "react";
+import Loader from "./microcomponents/loader";
 export const Form = () => {
+  const formRef=useRef()
+  const [error1, seterror1] = useState(null)
+  const [error2, seterror2] = useState(null)
+const [loading, setloading] = useState(false)
+  const [open, setopen] = useState(false)
   const [data, setData] = React.useState({});
+  
+  
+  const handleclose=()=>{
+    setopen(false)
+
+  }
   const update = (e) => {
     setData({
       ...data,
@@ -27,26 +40,39 @@ export const Form = () => {
     console.log(data);
   };
 
-  const submit = async (e) => {
-    e.preventDefault();
-    console.log(fileName);
-    e.preventDefault();
+  // const submit = (e) => {
+  //   e.preventDefault();
+  //   console.log(fileName);
+  //   e.preventDefault();
+  // }
+  const submit = (e) => {
+    setloading(true)
+    e.preventDefault()
 
-    const spaceRef = ref(storage, "proposals/" + fileName);
-    await uploadBytes(spaceRef, fileItem).then((snapshot) => {
-      console.log("Uploaded a proposal!");
+    const spaceRef = ref(storage, "proposal/" + fileName);
+    console.log(fileItem);
+    uploadBytes(spaceRef, fileItem).then((snapshot) => {
+      console.log("Uploaded proposal!");
       getDownloadURL(snapshot.ref).then(async (url) => {
-        await setData({
-          ...data,
-          url: url,
-        });
-        const id = data.name + data.email;
+        // setimg(url);
+
+        try {
+
+          var createpost = async () => {
+            const id = data.name + data.email;
 
         // Add a new document in collection "teams"
-        const adddoc = setDoc(doc(db, "teams", id), {
+        const adddoc = await setDoc(doc(db, "teams", id), {
           data,
-        }).then(()=>{
+          "url":url
+        }).then(() => {
+          const info = {
+            ...data,
+            "url":url
+            
+          };
           fetch(
+            // process.env.REACT_APP_API
             "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
             {
               method: "POST",
@@ -54,7 +80,7 @@ export const Form = () => {
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(data),
+              body: JSON.stringify(info),
             }
           )
             .then((r) => r.json())
@@ -62,19 +88,77 @@ export const Form = () => {
               // The response comes here
               console.log(data);
             })
-            .catch((error) => {
+            .catch((err) => {
               // Errors are reported there
-              console.log(error);
+              console.log(err);
+              seterror1(err)
             });
-
         });
+            
+          };
+        } catch (err) {
+          console.log("the error is" + err);
+          seterror2(err)
+        }
+        createpost();
+
+
       });
+    }).then(()=>{
+      setopen(true)
+      formRef.current.reset()
+      setloading(false)
     });
   };
+  
+
+  //   const spaceRef = ref(storage, "proposals/" + fileName);
+  //    uploadBytes(spaceRef, fileItem).then((snapshot) => {
+  //     console.log("Uploaded a proposal!");
+  //     getDownloadURL(snapshot.ref).then(async (url) => {
+  //       setData({
+  //         ...data,
+  //        "url" : url,
+  //       });
+  //       const id = data.name + data.email;
+
+  //       // Add a new document in collection "teams"
+  //       const adddoc = await setDoc(doc(db, "teams", id), {
+  //         data,
+  //       }).then(() => {
+  //         fetch(
+  //           "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
+  //           {
+  //             method: "POST",
+  //             mode: "cors",
+  //             headers: {
+  //               "Content-Type": "application/json",
+  //             },
+  //             body: JSON.stringify(data),
+  //           }
+  //         )
+  //           .then((r) => r.json())
+  //           .then((data) => {
+  //             // The response comes here
+  //             console.log(data);
+  //           })
+  //           .catch((error) => {
+  //             // Errors are reported there
+  //             console.log(error);
+  //           });
+  //       });
+  //     });
+  //   });
+  // };
 
   const submitHandler = async (e) => {
     e.preventDefault();
-    
+    const data = {
+      Id: 16,
+      Name: "ack Doe",
+      Age: 97,
+      "Created at": new Date(),
+    };
 
     // Add one line to the sheet
     fetch(
@@ -101,6 +185,7 @@ export const Form = () => {
 
   return (
     <div className="form flex flex-col pt-5  h-[100vh] w-full px-20 gap-10 ">
+      <Loader open={open}/>
       <p className="header text-[44px] font-bold">
         Registration form for OSMHack2023
       </p>
@@ -112,6 +197,7 @@ export const Form = () => {
         participation in this exciting event!
       </p>
       <form
+      ref={formRef}
         className="applicantInfo w-full justify-start items-start pb-[5rem]"
         onSubmit={submit}
       >
@@ -122,7 +208,7 @@ export const Form = () => {
             id="outlined-basic"
             label="Full Name"
             variant="outlined"
-            className="w-[45%] max-sm:w-[20rem] "
+            className="w-[45%] max-sm:w-[20rem]"
             onChange={update}
             required={true}
           />
@@ -400,6 +486,8 @@ export const Form = () => {
             label="T-shirt size(S/M/L)"
             className="w-[45%] max-sm:w-[20rem]"
             onChange={update}
+            color="info"
+
           />
         </div>
         <p className="title  text-[34px] py-5">Project Information:</p>
@@ -447,13 +535,13 @@ export const Form = () => {
             <input
               type="file"
               name="proposal"
-              id=""
+              id="kj"
               onChange={(event) => getimg(event)}
               required={true}
             />
 
-            <div className="flex flex-wrap gap-5 items-center">
-              <input type="checkbox" name="" id="" required={true} />
+            <div className="flex gap-5 items-center justify-center">
+              <input type="checkbox" name="" id="" required={true} className="" />
               <p>
                 I agree to the terms and conditions and will follow code of
                 conduct.
@@ -461,9 +549,7 @@ export const Form = () => {
             </div>
           </div>
         </div>
-        <p className="reset bg-blue-800 w-max text-white py-2 px-3 rounded-xl">
-          Reset
-        </p>
+
         <button
           className=" bg-btn w-max py-3 px-5 rounded-xl text-white text-2xl"
           // onClick={submit}
@@ -471,6 +557,13 @@ export const Form = () => {
           Submit
         </button>
       </form>
+      <Snackbar
+        open={open}
+        autoHideDuration={5000}
+        onClose={handleclose}
+        message={error1===null||error2===null?"success":"error"}
+
+      />
     </div>
   );
 };

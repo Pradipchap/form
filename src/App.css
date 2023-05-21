@@ -1,8 +1,10 @@
-
 .App {
   text-align: center;
 }
 
+.MuiFormHelperText-root {
+  color: white !important;
+}
 
 .App-logo {
   height: 40vmin;
@@ -26,6 +28,11 @@
   color: white;
 }
 
+.textfield__label {
+  color: white !important;
+
+}
+
 .App-link {
   color: #61dafb;
 }
@@ -34,7 +41,9 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
+
