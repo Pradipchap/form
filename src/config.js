@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -19,12 +20,12 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
 
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
-
+export const storage = getStorage(app);
 // site key: 6LeNOiImAAAAAM9eFE8iwWHm2XBDbnsINRLpdQW4
 // secret key :6LeNOiImAAAAAKs6bXfgjvPgos-jEvDb9pZVGAUV
 // Pass your reCAPTCHA v3 site key (public key) to activate(). Make sure this

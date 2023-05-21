@@ -1,68 +1,80 @@
-import React, { useCallback } from "react";
-
-import { useState, useEffect, useRef } from "react";
-import Axios from "axios";
-import { Input, TextField } from "@mui/material";
+import React, { useRef } from "react";
+import { TextField } from "@mui/material";
+import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { db } from "../config";
-// import ReCAPTCHA from "react-google-recaptcha";
-import { doc, setDoc } from "firebase/firestore";
+import { addDoc, doc, setDoc } from "firebase/firestore";
+
 export const Form = () => {
+  const [data, setData] = React.useState({});
+  const update = (e) => {
+    setData({
+      ...data,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const storage = getStorage();
+
+  let fileItem;
+  let fileName;
+  const getimg = (e) => {
+    fileItem = e.target.files[0];
+    fileName = fileItem.name;
+  };
+  const testsubmit = (e) => {
+    e.preventDefault();
+
+    console.log(data);
+  };
+
   const submit = async (e) => {
     e.preventDefault();
-    const id=e.target[0].value+e.target[1].value
+    console.log(fileName);
+    e.preventDefault();
 
-    // Add a new document in collection "cities"
-    await setDoc(doc(db, "teams", id), {
-      applicant_name: e.target[0].value,
-      applicant_email:e.target[1].value,
-      applicant_phone:e.target[2].value,
-      applicant_address:e.target[3].value,
-      institution_name:e.target[4].value,
-      team_name:e.target[5].value,
-      team_description:e.target[6].value,
-      member1_name:e.target[7].value,
-      member1_email:e.target[8].value,
-      member1_phone:e.target[9].value,
-      member1_github:e.target[10].value,
-      member1_food:e.target[11].value,
-      member1_tshirt:e.target[12].value,
-      member2_name:e.target[13].value,
-      member2_email:e.target[14].value,
-      member2_phone:e.target[15].value,
-      member2_github:e.target[16].value,
-      member2_food:e.target[17].value,
-      member2_tshirt:e.target[18].value,
-      member3_name:e.target[19].value,
-      member3_email:e.target[20].value,
-      member3_phone:e.target[21].value,
-      member3_github:e.target[22].value,
-      member3_food:e.target[23].value,
-      member3_tshirt:e.target[24].value,
-      member4_name:e.target[25].value,
-      member4_email:e.target[26].value,
-      member4_phone:e.target[27].value,
-      member4_github:e.target[28].value,
-      member4_food:e.target[29].value,
-      member4_tshirt:e.target[30].value,
-      project_name:e.target[31].value,
-      project_description:e.target[32].value,
-      tech_stack:e.target[33].value,
-      proposal_fire:e.target[34].value,
+    const spaceRef = ref(storage, "proposals/" + fileName);
+    await uploadBytes(spaceRef, fileItem).then((snapshot) => {
+      console.log("Uploaded a proposal!");
+      getDownloadURL(snapshot.ref).then(async (url) => {
+        await setData({
+          ...data,
+          url: url,
+        });
+        const id = data.name + data.email;
 
+        // Add a new document in collection "teams"
+        const adddoc = setDoc(doc(db, "teams", id), {
+          data,
+        }).then(()=>{
+          fetch(
+            "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
+            {
+              method: "POST",
+              mode: "cors",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(data),
+            }
+          )
+            .then((r) => r.json())
+            .then((data) => {
+              // The response comes here
+              console.log(data);
+            })
+            .catch((error) => {
+              // Errors are reported there
+              console.log(error);
+            });
 
-
-
+        });
+      });
     });
   };
 
   const submitHandler = async (e) => {
     e.preventDefault();
-    const data = {
-      Id: 16,
-      Name: "ack Doe",
-      Age: 97,
-      "Created at": new Date(),
-    };
+    
 
     // Add one line to the sheet
     fetch(
@@ -106,38 +118,49 @@ export const Form = () => {
         <p className="title  text-[34px] py-5">Applicant Information:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start  py-5">
           <TextField
+            name="name"
             id="outlined-basic"
             label="Full Name"
             variant="outlined"
             className="w-[45%] max-sm:w-[20rem] "
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
+            name="email"
             label="Email"
             variant="outlined"
             className="w-[45%]  max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
+            name="phone_number"
             label="Phone Number"
             variant="outlined"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             label="Address"
+            name="address"
             variant="outlined"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             label="College Name"
+            name="college_name"
             variant="outlined"
             className="w-[91%] max-sm:w-[20rem]"
+            onChange={update}
+            required={true}
           />
         </div>
         <p className="title  text-[34px] py-5">Applicant Information:</p>
@@ -145,17 +168,21 @@ export const Form = () => {
           <TextField
             id="outlined-basic"
             label="Team Name"
+            name="team_name"
             variant="outlined"
             className="w-[75%] max-sm:w-[20rem] "
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="short_description"
             label="Short description of your team"
             className="w-[75%]  max-sm:w-[20rem]"
             rows={10}
             multiline={true}
+            onChange={update}
             required={true}
           />
         </div>
@@ -164,43 +191,55 @@ export const Form = () => {
           <TextField
             id="outlined-basic"
             label="Full Name"
+            name="member1_name"
             variant="outlined"
             className="w-[45%] max-sm:w-[20rem] "
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member1_email"
             label="Email"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member1_phone"
             label="Phone Number"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member1_github"
             label="Github Profile"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member1_vegornonveg"
             label="Veg or Non-veg"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member1_size"
             label="T-shirt size(S/M/L)"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
         </div>
@@ -209,43 +248,55 @@ export const Form = () => {
           <TextField
             id="outlined-basic"
             label="Full Name"
+            name="member2_name"
             variant="outlined"
             className="w-[45%] max-sm:w-[20rem] "
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member2_email"
             label="Email"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member2_phone"
             label="Phone Number"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member2_github"
             label="Github Profile"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member2_vegornonveg"
             label="Veg or Non-veg"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member2_size"
             label="T-shirt size(S/M/L)"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
         </div>
@@ -254,38 +305,50 @@ export const Form = () => {
           <TextField
             id="outlined-basic"
             label="Full Name"
+            name="member3_name"
             variant="outlined"
             className="w-[45%] max-sm:w-[20rem] "
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member3_email"
             label="Email"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member3_phone"
             label="Phone Number"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member3_github"
             label="Github Profile"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member3_vegornonveg"
             label="Veg or Non-veg"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member3_size"
             label="T-shirt size(S/M/L)"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
         </div>
         <p className="title text-[34px] py-5">Member 4:</p>
@@ -293,38 +356,50 @@ export const Form = () => {
           <TextField
             id="outlined-basic"
             label="Full Name"
+            name="member4_name"
             variant="outlined"
+            onChange={update}
             className="w-[45%] max-sm:w-[20rem] "
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member4_email"
             label="Email"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member4_phone"
             label="Phone Number"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member4_github"
             label="Github Profile"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member4_vegornonveg"
             label="Veg or Non-veg"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="member4_size"
             label="T-shirt size(S/M/L)"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
           />
         </div>
         <p className="title  text-[34px] py-5">Project Information:</p>
@@ -332,28 +407,24 @@ export const Form = () => {
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="project_name"
             label="Project Name"
             className="w-[45%] max-sm:w-[20rem]"
+            onChange={update}
             required={true}
           />
           <TextField
             id="outlined-basic"
             variant="outlined"
+            name="project_description"
             label="A short description of your project (minimum 50 words)..."
             className="w-[75%]  max-sm:w-[20rem]"
             rows={10}
             multiline={true}
+            onChange={update}
             required={true}
           />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            label="A short description of your project (minimum 50 words)..."
-            className="w-[75%]  max-sm:w-[20rem]"
-            rows={10}
-            multiline={true}
-            required={true}
-          />
+
           <div className="proposal flex flex-col justify-start items-start w-full gap-5">
             <p>
               Also drop a file explaining the projects in detail. Include
@@ -373,10 +444,16 @@ export const Form = () => {
               </li>
               <li>Previous hackathon experience of any member [Optional]</li>
             </ul>
-            <input type="file" name="proposal" id="" required={true} />
+            <input
+              type="file"
+              name="proposal"
+              id=""
+              onChange={(event) => getimg(event)}
+              required={true}
+            />
 
             <div className="flex flex-wrap gap-5 items-center">
-              <input type="checkbox" name="" id="" required={true} clas />
+              <input type="checkbox" name="" id="" required={true} />
               <p>
                 I agree to the terms and conditions and will follow code of
                 conduct.
@@ -389,7 +466,7 @@ export const Form = () => {
         </p>
         <button
           className=" bg-btn w-max py-3 px-5 rounded-xl text-white text-2xl"
-          onClick={submit}
+          // onClick={submit}
         >
           Submit
         </button>
