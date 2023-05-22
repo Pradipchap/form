@@ -3,10 +3,10 @@ import { Snackbar, TextField } from "@mui/material";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { db } from "../config";
 import { doc, setDoc } from "firebase/firestore";
-import "./style2.css";
 import { useState } from "react";
 import Loader from "./microcomponents/loader";
 import ReCAPTCHA from "react-google-recaptcha";
+import BasicSelect from "./microcomponents/select";
 export const Form = () => {
   const siteKey = process.env.REACT_APP_reCAPTCHA_SITE_KEY;
   const recaptchaRef = React.createRef();
@@ -25,10 +25,10 @@ export const Form = () => {
     var filePath = fileInput.value;
 
     // Allowing file type
-    var allowedExtensions = /(\.pdf|\.png|\.jpg|\.jpeg)$/i;
+    var allowedExtensions = /(\.pdf|\.png|\.jpg|\.jpeg|\.txt)$/i;
 
     if (!allowedExtensions.exec(filePath)) {
-      alert("Invalid file type");
+      alert("Invalid file type! Supported file types: pdf, png, jpg, txt.");
       fileInput.value = "";
       return false;
     }
@@ -38,7 +38,12 @@ export const Form = () => {
   const handleclose = () => {
     setopen(false);
   };
-
+  const updateForDropdown = (name, value) => {
+    setData({
+      ...data,
+      [name]: value,
+    });
+  };
   //to update form data for database after each onchange event
   const update = (e) => {
     setData({
@@ -66,7 +71,7 @@ export const Form = () => {
     let formData = new FormData();
     formData.append("token", token);
     // submit to backend API endpoint here
-    const response = await fetch("http://v.osac.org.np:9000/api/submit/", {
+    const response = await fetch("https://v.osac.org.np:9000/api/submit/", {
       method: "POST",
       body: formData,
       mode: "cors",
@@ -79,14 +84,12 @@ export const Form = () => {
       return;
     }
     console.log("file item", fileItem);
-    if (fileItem===undefined){
-      seterror1("error")
-      setopen(true)
-      return
-      
+    if (fileItem === undefined) {
+      seterror1("error");
+      setopen(true);
+      return;
     }
     const spaceRef = ref(storage, "proposal/" + fileName);
-    
 
     uploadBytes(spaceRef, fileItem)
       .then((snapshot) => {
@@ -109,8 +112,8 @@ export const Form = () => {
                 };
 
                 fetch(
-                  "https://sheet.best/api/sheets/ff6db3c6-f2c3-41fc-bec0-05bc1b693381",
-                  // "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
+                  // "https://sheet.best/api/sheets/ff6db3c6-f2c3-41fc-bec0-05bc1b693381",
+                  "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
                   {
                     method: "POST",
                     mode: "cors",
@@ -145,11 +148,10 @@ export const Form = () => {
         // setloading(false)
       });
   };
-
   return (
-    <div className="form flex flex-col pt-5  h-[100vh] w-full px-20 gap-10 ">
-      {/* <Loader open={open}/> */}
-      <p className="header text-[24px] font-bold">
+    <div className="form flex flex-col pt-5  h-[100vh] w-full px-20 gap-10 bg-white text-left">
+      {/* <Loader open={open} /> */}
+      <p className="header  font-semibold p-10 text-3xl md:text-5xl text-center font-inter">
         Registration form for OSMHack2023
       </p>
       <p className="desc text-[24px] font-[500]">
@@ -161,10 +163,10 @@ export const Form = () => {
       </p>
       <form
         ref={formRef}
-        className="applicantInfo w-full justify-start items-start pb-[5rem]"
+        className="applicantInfo w-full justify-start items-start pb-[5rem] bg-white"
         onSubmit={submit}
       >
-        <p className="  text-[34px] py-5">Applicant Information:</p>
+        <p className="text-[34px] py-5 text-center">Applicant Information:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start  py-5">
           <TextField
             name="name"
@@ -212,8 +214,10 @@ export const Form = () => {
             required={true}
           />
         </div>
-        <p className="  text-[34px] py-5">Applicant Information:</p>
-        <div className="inputs flex flex-wrap gap-[15px] items-start justify-start  py-5">
+        <p className="bg-white text-[34px] py-5 text-center">
+          Team Information:
+        </p>
+        <div className=" bg-white inputs flex flex-wrap gap-[15px] items-start justify-start  py-5">
           <TextField
             id="outlined-basic"
             label="Team Name"
@@ -235,7 +239,7 @@ export const Form = () => {
             required={true}
           />
         </div>
-        <p className="  text-[34px] py-5">Member 1:</p>
+        <p className="text-[34px] py-5 text-left px-5">Member 1:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -273,28 +277,33 @@ export const Form = () => {
             onChange={update}
             required={true}
           />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            name="member1_vegornonveg"
-            label="Veg or Non-veg"
-            className="w-[45%] max-sm:w-[20rem]"
-            onChange={update}
-            required={true}
-          />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            name="member1_size"
-            label="T-shirt size(S/M/L)"
-            className="w-[45%] max-sm:w-[20rem]"
-            onChange={update}
-            required={true}
-          />
+          <div className="w-[45%] max-sm:w-[20rem]">
+            <BasicSelect
+              details={{
+                title: "food Preferences",
+                options: ["Veg", "Non-Veg"],
+                memberQueue: 1,
+                name: "member1_vegornonveg",
+              }}
+              update={updateForDropdown}
+            />
+          </div>
+
+          <div className="w-[45%] max-sm:w-[20rem]">
+            <BasicSelect
+              details={{
+                title: "T-Shirt Size",
+                options: ["small", "Medium", "large"],
+                memberQueue: 1,
+                name: "member1_size",
+              }}
+              update={updateForDropdown}
+            />
+          </div>
         </div>
-        <p className=" text-[34px] py-5">Member 2:</p>
+        <p className="text-[34px] py-5 px-5">Member 2:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
-          <TextField
+          {/* <TextField
             id="outlined-basic"
             label="Full Name"
             name="member2_name"
@@ -302,7 +311,8 @@ export const Form = () => {
             className="w-[45%] max-sm:w-[20rem] "
             onChange={update}
             required={true}
-          />
+          /> */}
+          <input type="email" name="asd" id="asd" />
           <TextField
             id="outlined-basic"
             variant="outlined"
@@ -330,26 +340,32 @@ export const Form = () => {
             onChange={update}
             required={true}
           />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            name="member2_vegornonveg"
-            label="Veg or Non-veg"
-            className="w-[45%] max-sm:w-[20rem]"
-            onChange={update}
-            required={true}
-          />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            name="member2_size"
-            label="T-shirt size(S/M/L)"
-            className="w-[45%] max-sm:w-[20rem]"
-            onChange={update}
-            required={true}
-          />
+
+          <div className="w-[45%] max-sm:w-[20rem]">
+            <BasicSelect
+              details={{
+                title: "food Preferences",
+                options: ["Veg", "Non-Veg"],
+                memberQueue: 2,
+                name: "member2_vegornonveg",
+              }}
+              update={updateForDropdown}
+            />
+          </div>
+
+          <div className="w-[45%] max-sm:w-[20rem]">
+            <BasicSelect
+              details={{
+                title: "T-Shirt Size",
+                options: ["small", "Medium", "large"],
+                memberQueue: 2,
+                name: "member2_size",
+              }}
+              update={updateForDropdown}
+            />
+          </div>
         </div>
-        <p className="  text-[34px] py-5">Member 3:</p>
+        <p className=" text-[34px] py-5 px-5">Member 3:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -383,24 +399,30 @@ export const Form = () => {
             className="w-[45%] max-sm:w-[20rem]"
             onChange={update}
           />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            name="member3_vegornonveg"
-            label="Veg or Non-veg"
-            className="w-[45%] max-sm:w-[20rem]"
-            onChange={update}
-          />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            name="member3_size"
-            label="T-shirt size(S/M/L)"
-            className="w-[45%] max-sm:w-[20rem]"
-            onChange={update}
-          />
+          <div className="w-[45%] max-sm:w-[20rem]">
+            <BasicSelect
+              details={{
+                title: "food Preferences",
+                options: ["Veg", "Non-Veg"],
+                memberQueue: 3,
+                name: "member3_vegornonveg",
+              }}
+              update={updateForDropdown}
+            />
+          </div>
+          <div className="w-[45%] max-sm:w-[20rem]">
+            <BasicSelect
+              details={{
+                title: "T-Shirt Size",
+                options: ["small", "Medium", "large"],
+                memberQueue: 3,
+                name: "member3_size",
+              }}
+              update={updateForDropdown}
+            />
+          </div>
         </div>
-        <p className=" text-[34px] py-5">Member 4:</p>
+        <p className=" text-[34px] py-5 px-5">Member 4:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -434,25 +456,31 @@ export const Form = () => {
             className="w-[45%] max-sm:w-[20rem]"
             onChange={update}
           />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            name="member4_vegornonveg"
-            label="Veg or Non-veg"
-            className="w-[45%] max-sm:w-[20rem]"
-            onChange={update}
-          />
-          <TextField
-            id="outlined-basic"
-            variant="outlined"
-            name="member4_size"
-            label="T-shirt size(S/M/L)"
-            className="w-[45%] max-sm:w-[20rem]"
-            onChange={update}
-            color="info"
-          />
+
+          <div className="w-[45%] max-sm:w-[20rem]">
+            <BasicSelect
+              details={{
+                title: "food Preferences",
+                options: ["Veg", "Non-Veg"],
+                memberQueue: 4,
+                name: "member4_vegornonveg",
+              }}
+              update={updateForDropdown}
+            />
+          </div>
+          <div className="w-[45%] max-sm:w-[20rem]">
+            <BasicSelect
+              details={{
+                title: "T-Shirt Size",
+                options: ["small", "Medium", "large"],
+                memberQueue: 4,
+                name: "member4_size",
+              }}
+              update={updateForDropdown}
+            />
+          </div>
         </div>
-        <p className="  text-[34px] py-5">Project Information:</p>
+        <p className="text-[34px] py-5 px-5">Project Information:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -475,24 +503,29 @@ export const Form = () => {
             required={true}
           />
 
-          <div className="proposal flex flex-col justify-start items-start w-full gap-5">
-            <p>
-              Also drop a file explaining the projects in detail. Include
-              following points:{" "}
+          <div className="proposal flex flex-col justify-start items-start w-full gap-5 mt-5">
+            <p className="text-[34px] py-5 ">Proposal File:</p>
+            <p className="text-xl font-semibold ">
+              Drop a file explaining the projects in detail. Include following
+              points:{" "}
             </p>
-            <ul className="flex flex-col justify-start items-start">
+            <ul className="flex flex-col justify-start items-start list-disc px-4 py-1">
               <li>Project name </li>
               <li> Project description</li>
               <li>The problem you will solve with this project </li>
               <li>Platforms or technologies to be used </li>
               <li>
-                How would you use OpenStreetMap in this project [Most Important
+                How would you use OpenStreetMap in this project{" "}
+                <em className="font-semibold"> [Most Important]</em>
               </li>
               <li>
-                Some flowchart or architecture of your project(product)
-                [Optional]
+                Some flowchart or architecture of your project/product
+                <em className="font-semibold"> [Optional]</em>
               </li>
-              <li>Previous hackathon experience of any member [Optional]</li>
+              <li>
+                Previous hackathon experience of any member{" "}
+                <em className="font-semibold"> [Optional]</em>
+              </li>
             </ul>
             <input
               type="file"
@@ -505,6 +538,9 @@ export const Form = () => {
               required={true}
               ref={fileRef}
             />
+            <span>
+              <em>* Supported file types: pdf, txt, jpg, png.</em>
+            </span>
 
             <div className="flex gap-5 items-center justify-center">
               <input
@@ -523,7 +559,7 @@ export const Form = () => {
         </div>
 
         <button
-          className=" bg-btn w-max py-3 px-5 rounded-xl text-white text-2xl"
+          className=" bg-btn w-max py-2 px-10 rounded-xl bg-dblue text-white text-2xl mt-5 ml-0 active:translate-y-1 hover:bg-dgreen"
           // onClick={submit}
         >
           Submit
@@ -535,13 +571,18 @@ export const Form = () => {
           // sitekey={siteKey}
         />
       </form>
-
       <Snackbar
         open={open}
-        autoHideDuration={1000}
+        // autoHideDuration={1000}
         onClose={handleclose}
-        message={error1 === null || error2 === null ? "success" : "error"}
+        message={
+          error1 === null && error2 === null
+            ? "your form has been submitted successfully"
+            : "sorry try again..something wrong happened"
+        }
       />
     </div>
   );
 };
+
+export default Form;

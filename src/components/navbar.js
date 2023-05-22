@@ -17,7 +17,7 @@ export const Navbar = () => {
           <Link to="/team">Teams</Link>
         </li>
         <li className="text-md font-bold">
-          <Link to="/preevents">Pre-Events</Link>
+          <Link to="/preevents">preevents</Link>
         </li> 
         <li className="register bg-btn py-2 px-2 text-white font-bold rounded-[6px] shadow-lg">
           <Link to="/redirect">Register Now</Link>

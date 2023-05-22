@@ -6,6 +6,7 @@ import osaclogo from "./img2/osac-official-logo.png"
 import hotm from "./img2/HOT_OMH_Asia_Pacific_Logo_COLOUR.png"
 import { Link } from 'react-router-dom'
 
+
 export const Home = () => {
   return (
     <div>
@@ -170,6 +171,7 @@ export const Home = () => {
           <a href="tel:+9779814285622">9814285622</a>
         </div>
       </div>
+
     </section>
     </div>
   )
