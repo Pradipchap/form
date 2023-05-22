@@ -8,7 +8,7 @@ import { useState } from "react";
 import Loader from "./microcomponents/loader";
 import ReCAPTCHA from "react-google-recaptcha";
 export const Form = () => {
-  const siteKey=process.env.REACT_APP_reCAPTCHA_SITE_KEY;
+  const siteKey = process.env.REACT_APP_reCAPTCHA_SITE_KEY;
   const recaptchaRef = React.createRef();
   const formRef = useRef(); //ref of entire form component
   const fileRef = useRef(); //ref of file input field
@@ -69,20 +69,24 @@ export const Form = () => {
     const response = await fetch("http://v.osac.org.np:9000/api/submit/", {
       method: "POST",
       body: formData,
-      mode: 'cors'
+      mode: "cors",
     });
     const captchaResponse = await response.json();
     console.log("captchresponse", captchaResponse);
-    console.log("first",captchaResponse.success)
+    console.log("first", captchaResponse.success);
     if (!captchaResponse.success) {
-      
       seterror1(captchaResponse.message);
       return;
     }
-
-    const spaceRef = ref(storage, "proposal/" + fileName);
     console.log("file item", fileItem);
-    // if (fileItem.)
+    if (fileItem===undefined){
+      seterror1("error")
+      setopen(true)
+      return
+      
+    }
+    const spaceRef = ref(storage, "proposal/" + fileName);
+    
 
     uploadBytes(spaceRef, fileItem)
       .then((snapshot) => {
@@ -524,13 +528,14 @@ export const Form = () => {
         >
           Submit
         </button>
+        <ReCAPTCHA
+          ref={recaptchaRef}
+          size="invisible"
+          sitekey="6LcNtCQmAAAAAJHXrxbe8UvoMPSwp6XHdR9Qo6cf"
+          // sitekey={siteKey}
+        />
       </form>
-      <ReCAPTCHA
-        ref={recaptchaRef}
-        size="invisible"
-sitekey="6LcNtCQmAAAAAJHXrxbe8UvoMPSwp6XHdR9Qo6cf"
-        // sitekey={siteKey}
-      />
+
       <Snackbar
         open={open}
         autoHideDuration={1000}
