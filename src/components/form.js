@@ -2,23 +2,43 @@ import React, { useRef } from "react";
 import { Snackbar, TextField } from "@mui/material";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { db } from "../config";
-import {  doc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import "./style2.css";
 import { useState } from "react";
 import Loader from "./microcomponents/loader";
+import ReCAPTCHA from "react-google-recaptcha";
 export const Form = () => {
-  const formRef=useRef()
-  const [error1, seterror1] = useState(null)
-  const [error2, seterror2] = useState(null)
-const [loading, setloading] = useState(false)
-  const [open, setopen] = useState(false)
+  const recaptchaRef = React.createRef();
+  const formRef = useRef(); //ref of entire form component
+  const fileRef = useRef(); //ref of file input field
+  const [error1, seterror1] = useState(null);
+  const [error2, seterror2] = useState(null);
+  // const [loading, setloading] = useState(false)
+  const [open, setopen] = useState(false);
   const [data, setData] = React.useState({});
-  
-  
-  const handleclose=()=>{
-    setopen(false)
 
-  }
+  //to validate if the file submitted is int correct extensions
+  const fileValidation = () => {
+    var fileInput = fileRef.current;
+
+    var filePath = fileInput.value;
+
+    // Allowing file type
+    var allowedExtensions = /(\.pdf|\.png|\.jpg|\.jpeg)$/i;
+
+    if (!allowedExtensions.exec(filePath)) {
+      alert("Invalid file type");
+      fileInput.value = "";
+      return false;
+    }
+  };
+
+  //close snackbar
+  const handleclose = () => {
+    setopen(false);
+  };
+
+  //to update form data for database after each onchange event
   const update = (e) => {
     setData({
       ...data,
@@ -30,163 +50,101 @@ const [loading, setloading] = useState(false)
 
   let fileItem;
   let fileName;
+
+  //get file from input fild
   const getimg = (e) => {
     fileItem = e.target.files[0];
     fileName = fileItem.name;
   };
-  const testsubmit = (e) => {
+
+  //submit form
+  const submit = async (e) => {
+    // setloading(true)
     e.preventDefault();
-
-    console.log(data);
-  };
-
-  // const submit = (e) => {
-  //   e.preventDefault();
-  //   console.log(fileName);
-  //   e.preventDefault();
-  // }
-  const submit = (e) => {
-    setloading(true)
-    e.preventDefault()
+    const token = await recaptchaRef.current.executeAsync();
+    let formData = new FormData();
+    formData.append("token", token);
+    // submit to backend API endpoint here
+    const response = await fetch("http://v.osac.org.np:9000/api/submit/", {
+      method: "POST",
+      body: formData,
+      mode: 'cors'
+    });
+    const captchaResponse = await response.json();
+    console.log("captchresponse", captchaResponse);
+    console.log("first",captchaResponse.success)
+    if (!captchaResponse.success) {
+      
+      seterror1(captchaResponse.message);
+      return;
+    }
 
     const spaceRef = ref(storage, "proposal/" + fileName);
-    console.log(fileItem);
-    uploadBytes(spaceRef, fileItem).then((snapshot) => {
-      console.log("Uploaded proposal!");
-      getDownloadURL(snapshot.ref).then(async (url) => {
-        // setimg(url);
+    console.log("file item", fileItem);
+    // if (fileItem.)
 
-        try {
+    uploadBytes(spaceRef, fileItem)
+      .then((snapshot) => {
+        console.log("Uploaded proposal!");
+        getDownloadURL(snapshot.ref).then(async (url) => {
+          // setimg(url);
 
-          var createpost = async () => {
-            const id = data.name + data.email;
+          try {
+            var createpost = async () => {
+              const id = data.name + data.email;
 
-        // Add a new document in collection "teams"
-        const adddoc = await setDoc(doc(db, "teams", id), {
-          data,
-          "url":url
-        }).then(() => {
-          const info = {
-            ...data,
-            "url":url
-            
-          };
-          fetch(
-            // process.env.REACT_APP_API
-            "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
-            {
-              method: "POST",
-              mode: "cors",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(info),
-            }
-          )
-            .then((r) => r.json())
-            .then((data) => {
-              // The response comes here
-              console.log(data);
-            })
-            .catch((err) => {
-              // Errors are reported there
-              console.log(err);
-              seterror1(err)
-            });
+              // Add a new document in collection "teams"
+              const adddoc = await setDoc(doc(db, "teams", id), {
+                data,
+                url: url,
+              }).then(() => {
+                const info = {
+                  ...data,
+                  url: url,
+                };
+
+                fetch(
+                  "https://sheet.best/api/sheets/ff6db3c6-f2c3-41fc-bec0-05bc1b693381",
+                  // "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
+                  {
+                    method: "POST",
+                    mode: "cors",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(info),
+                  }
+                )
+                  .then((r) => r.json())
+                  .then((data) => {
+                    // The response comes here
+                    console.log(data);
+                  })
+                  .catch((err) => {
+                    // Errors are reported there
+                    console.log(err);
+                    seterror1(err);
+                  });
+              });
+            };
+          } catch (err) {
+            console.log("the error is" + err);
+            seterror2(err);
+          }
+          createpost();
         });
-            
-          };
-        } catch (err) {
-          console.log("the error is" + err);
-          seterror2(err)
-        }
-        createpost();
-
-
-      });
-    }).then(()=>{
-      setopen(true)
-      formRef.current.reset()
-      setloading(false)
-    });
-  };
-  
-
-  //   const spaceRef = ref(storage, "proposals/" + fileName);
-  //    uploadBytes(spaceRef, fileItem).then((snapshot) => {
-  //     console.log("Uploaded a proposal!");
-  //     getDownloadURL(snapshot.ref).then(async (url) => {
-  //       setData({
-  //         ...data,
-  //        "url" : url,
-  //       });
-  //       const id = data.name + data.email;
-
-  //       // Add a new document in collection "teams"
-  //       const adddoc = await setDoc(doc(db, "teams", id), {
-  //         data,
-  //       }).then(() => {
-  //         fetch(
-  //           "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
-  //           {
-  //             method: "POST",
-  //             mode: "cors",
-  //             headers: {
-  //               "Content-Type": "application/json",
-  //             },
-  //             body: JSON.stringify(data),
-  //           }
-  //         )
-  //           .then((r) => r.json())
-  //           .then((data) => {
-  //             // The response comes here
-  //             console.log(data);
-  //           })
-  //           .catch((error) => {
-  //             // Errors are reported there
-  //             console.log(error);
-  //           });
-  //       });
-  //     });
-  //   });
-  // };
-
-  const submitHandler = async (e) => {
-    e.preventDefault();
-    const data = {
-      Id: 16,
-      Name: "ack Doe",
-      Age: 97,
-      "Created at": new Date(),
-    };
-
-    // Add one line to the sheet
-    fetch(
-      "https://sheet.best/api/sheets/802a7ace-8d3b-4de4-a311-61928b2bfc31",
-      {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      }
-    )
-      .then((r) => r.json())
-      .then((data) => {
-        // The response comes here
-        console.log(data);
       })
-      .catch((error) => {
-        // Errors are reported there
-        console.log(error);
+      .then(() => {
+        setopen(true);
+        formRef.current.reset();
+        // setloading(false)
       });
   };
 
   return (
     <div className="form flex flex-col pt-5  h-[100vh] w-full px-20 gap-10 ">
-      <Loader open={open}/>
-      <p className="header text-[44px] font-bold">
+      {/* <Loader open={open}/> */}
+      <p className="header text-[24px] font-bold">
         Registration form for OSMHack2023
       </p>
       <p className="desc text-[24px] font-[500]">
@@ -197,11 +155,11 @@ const [loading, setloading] = useState(false)
         participation in this exciting event!
       </p>
       <form
-      ref={formRef}
+        ref={formRef}
         className="applicantInfo w-full justify-start items-start pb-[5rem]"
         onSubmit={submit}
       >
-        <p className="title  text-[34px] py-5">Applicant Information:</p>
+        <p className="  text-[34px] py-5">Applicant Information:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start  py-5">
           <TextField
             name="name"
@@ -249,7 +207,7 @@ const [loading, setloading] = useState(false)
             required={true}
           />
         </div>
-        <p className="title  text-[34px] py-5">Applicant Information:</p>
+        <p className="  text-[34px] py-5">Applicant Information:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start  py-5">
           <TextField
             id="outlined-basic"
@@ -272,7 +230,7 @@ const [loading, setloading] = useState(false)
             required={true}
           />
         </div>
-        <p className="title  text-[34px] py-5">Member 1:</p>
+        <p className="  text-[34px] py-5">Member 1:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -329,7 +287,7 @@ const [loading, setloading] = useState(false)
             required={true}
           />
         </div>
-        <p className="title  text-[34px] py-5">Member 2:</p>
+        <p className=" text-[34px] py-5">Member 2:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -386,7 +344,7 @@ const [loading, setloading] = useState(false)
             required={true}
           />
         </div>
-        <p className="title  text-[34px] py-5">Member 3:</p>
+        <p className="  text-[34px] py-5">Member 3:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -437,7 +395,7 @@ const [loading, setloading] = useState(false)
             onChange={update}
           />
         </div>
-        <p className="title text-[34px] py-5">Member 4:</p>
+        <p className=" text-[34px] py-5">Member 4:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -487,10 +445,9 @@ const [loading, setloading] = useState(false)
             className="w-[45%] max-sm:w-[20rem]"
             onChange={update}
             color="info"
-
           />
         </div>
-        <p className="title  text-[34px] py-5">Project Information:</p>
+        <p className="  text-[34px] py-5">Project Information:</p>
         <div className="inputs flex flex-wrap gap-[15px] items-start justify-start px-5 py-5">
           <TextField
             id="outlined-basic"
@@ -536,12 +493,22 @@ const [loading, setloading] = useState(false)
               type="file"
               name="proposal"
               id="kj"
-              onChange={(event) => getimg(event)}
+              onChange={(event) => {
+                getimg(event);
+                fileValidation();
+              }}
               required={true}
+              ref={fileRef}
             />
 
             <div className="flex gap-5 items-center justify-center">
-              <input type="checkbox" name="" id="" required={true} className="" />
+              <input
+                type="checkbox"
+                name=""
+                id=""
+                required={true}
+                className=""
+              />
               <p>
                 I agree to the terms and conditions and will follow code of
                 conduct.
@@ -557,12 +524,16 @@ const [loading, setloading] = useState(false)
           Submit
         </button>
       </form>
+      <ReCAPTCHA
+        ref={recaptchaRef}
+        size="invisible"
+        sitekey={"6LcNtCQmAAAAAJHXrxbe8UvoMPSwp6XHdR9Qo6cf"}
+      />
       <Snackbar
         open={open}
-        autoHideDuration={5000}
+        autoHideDuration={1000}
         onClose={handleclose}
-        message={error1===null||error2===null?"success":"error"}
-
+        message={error1 === null || error2 === null ? "success" : "error"}
       />
     </div>
   );
